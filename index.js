@@ -7,7 +7,11 @@ const date = new Date();
 const TOKEN = process.env.TOKEN;
 const CLIENT_ID = process.env.CLIENT_ID;
 const GUILD_ID = process.env.GUILD_ID;
+const TWITTER_CHANNEL_ID = process.env.TWITTER_CHANNEL_ID;
 const { GatewayIntentBits, Partials } = require("discord.js");
+const { createClient } = require('@supabase/supabase-js');
+
+const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SECRET_KEY);
 
 const client = new Discord.Client({
 	intents: [
@@ -46,6 +50,66 @@ for (const file of eventFiles) {
 	}
 }
 
+client.on('messageCreate', async message => {
+	console.log('message event');
+	// Check if the message is from the desired channel
+	if (message.channel.id === TWITTER_CHANNEL_ID) {
+		
+		console.log(`[${message.author.tag}] ${message.content}`);
+
+		// Regular expression patterns
+		const urlRegex = /(https?:\/\/[^\s]+)/;
+		const twitterUsernameRegex = /twitter\.com\/([^\/]+)/;
+		// Regular expression pattern to extract the ID slug from the Twitter URL
+		const idSlugRegex = /\/status\/(\d+)/;
+
+
+
+		// Extract text
+		const text = message.content.split(urlRegex)[0].trim();
+
+		// Extract URL
+		const urlMatch = message.content.match(urlRegex);
+		const url = urlMatch ? urlMatch[0] : null;
+
+		// Extract username from URL
+		const usernameMatch = url.match(twitterUsernameRegex);
+		const username = usernameMatch ? usernameMatch[1] : null;
+
+		// Extract ID slug from URL
+		const idSlugMatch = url.match(idSlugRegex);
+		const idSlug = idSlugMatch ? idSlugMatch[1] : null;
+		console.log("Text:", text);
+		console.log("URL:", url);
+		console.log("Twitter Username:", username);
+		console.log("ID Slug:", idSlug);
+
+		// // Insert the message into the 'takes' table in Supabase
+		const { data, error } = await supabase.from('content').insert([
+			{ 
+				content_id: 'twitter-'+ username + '-' + idSlug,
+				publication_name: 'Twitter',
+				content_title: text,
+				published: new Date(),
+				parsed_link: url,
+				summary: text,
+				thumbnail_url: null,
+				content_type: 'tweet',
+				platform_id: idSlug,
+				author: username
+			 }
+		]);
+
+		if (error) {
+			console.error('Error inserting message into Supabase:', error.message);
+		} else {
+			console.log('Message inserted into Supabase successfully:', data);
+		}
+	}
+});
+
+
+
 (async () => {
 	const rest = new REST({ version: "10" }).setToken(TOKEN);
 	console.log("Started refreshing application (/) commands.");
@@ -59,6 +123,7 @@ for (const file of eventFiles) {
 		.catch((err) => {
 			if (err) {
 				console.log(err);
+				console.log(err.requestBody.json)
 				process.exit(1);
 			}
 		});

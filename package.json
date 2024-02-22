@@ -16,7 +16,9 @@
   },
   "homepage": "https://github.com/nateloeffel/BaseDiscordBot#readme",
   "dependencies": {
+    "@supabase/supabase-js": "^2.39.7",
     "discord.js": "^14.14.1",
-    "dotenv": "^16.3.1"
+    "dotenv": "^16.3.1",
+    "url-regex": "^5.0.0"
   }
 }
