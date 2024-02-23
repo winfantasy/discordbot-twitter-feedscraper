@@ -86,6 +86,10 @@ client.on('messageCreate', async message => {
 		console.log("Twitter Username:", username);
 		console.log("ID Slug:", idSlug);
 
+		var ingest_author = username
+		if(authorNameProcessed != '• TweetShift#0000'){
+			ingest_author = authorNameProcessed
+		}
 		// // Insert the message into the 'takes' table in Supabase
 		const { data, error } = await supabase.from('content').insert([
 			{ 
@@ -98,7 +102,7 @@ client.on('messageCreate', async message => {
 				thumbnail_url: null,
 				content_type: 'tweet',
 				platform_id: idSlug,
-				author: authorNameProcessed
+				author: ingest_author
 			 }
 		]);
 
