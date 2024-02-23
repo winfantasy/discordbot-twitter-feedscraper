@@ -63,7 +63,9 @@ client.on('messageCreate', async message => {
 		// Regular expression pattern to extract the ID slug from the Twitter URL
 		const idSlugRegex = /\/status\/(\d+)/;
 
-
+		const twitterAuthorName = message.author.tag;
+		//stringSplit author on ' • '
+		const authorNameProcessed = twitterAuthorName.split(' • ')[0];
 
 		// Extract text
 		const text = message.content.split(urlRegex)[0].trim();
@@ -88,7 +90,7 @@ client.on('messageCreate', async message => {
 		const { data, error } = await supabase.from('content').insert([
 			{ 
 				content_id: 'twitter-'+ username + '-' + idSlug,
-				publication_name: 'Twitter',
+				publication_name: 'Twitter.com/' + username,
 				content_title: text,
 				published: new Date(),
 				parsed_link: url,
@@ -96,7 +98,7 @@ client.on('messageCreate', async message => {
 				thumbnail_url: null,
 				content_type: 'tweet',
 				platform_id: idSlug,
-				author: username
+				author: authorNameProcessed
 			 }
 		]);
 
