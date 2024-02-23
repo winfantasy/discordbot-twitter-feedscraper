@@ -58,7 +58,7 @@ client.on('messageCreate', async message => {
 		console.log(`[${message.author.tag}] ${message.content}`);
 
 		// Regular expression patterns
-		const urlRegex = /(https?:\/\/[^\s]+)/;
+		const urlRegex = /https?:\/\/twitter\.com\/[^\s]*/g;
 		const twitterUsernameRegex = /twitter\.com\/([^\/]+)/;
 		// Regular expression pattern to extract the ID slug from the Twitter URL
 		const idSlugRegex = /\/status\/(\d+)/;
@@ -68,7 +68,7 @@ client.on('messageCreate', async message => {
 		const authorNameProcessed = twitterAuthorName.split(' • ')[0];
 
 		// Extract text
-		const text = message.content.split(urlRegex)[0].trim();
+		const text = message.content.split('https://twitter.com/')[0].trim();
 
 		// Extract URL
 		const urlMatch = message.content.match(urlRegex);
