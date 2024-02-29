@@ -166,20 +166,17 @@ client.on('messageCreate', async message => {
 					thumbnail_url: null,
 					content_type: 'tweet',
 					platform_id: idSlug,
-					author: ingest_author
+					author: ingest_author,
+					is_parsed: true
 				}
 			]);
 		}
 
 
 
-			if (error) {
-				console.error('Error inserting message into Supabase:', error.message);
-			} else {
-				console.log('Message inserted into Supabase successfully:', data);
-			}
-		}
-	});
+
+	}
+});
 
 
 
