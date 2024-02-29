@@ -10,6 +10,7 @@ const GUILD_ID = process.env.GUILD_ID;
 const TWITTER_CHANNEL_ID = process.env.TWITTER_CHANNEL_ID;
 const { GatewayIntentBits, Partials } = require("discord.js");
 const { createClient } = require('@supabase/supabase-js');
+const { OpenAI } = require('openai');
 
 const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SECRET_KEY);
 
@@ -22,6 +23,44 @@ const client = new Discord.Client({
 	],
 	partials: [Partials.GuildMember],
 });
+
+const openai = new OpenAI({
+	apiKey: process.env["OPENAI_API_KEY"], // This is the default and can be omitted
+});
+
+
+
+
+
+async function mapTweetToPlayer(tweetText, supabase, openai) {
+	const { data, error } = await supabase.from('players').select('player_id, full_name').eq('sport', 'baseball').eq('status', 'Active')
+
+	try {
+		const messages = [
+			{
+				role: "system",
+				content: `You will be provided with a tweet delimited by triple quotes, and a json array. Each object in the json array corresponds to an athlete. Your task is to return the players that are referenced in the tweet. Include a probability that this player is the correct one from 0,1. Anything over 90% should be fairly certain. If you think none of the players fit , then return an empty array. Use the following format for your output: {result: [{full_name, player_id, probability}, {full_name, player_id, probability}]}  Thank you!`,
+			},
+			{ role: "user", content: `"""${tweetText} """ ${JSON.stringify(data)}` },
+		];
+
+		const response = await openai.chat.completions.create({
+			model: "gpt-4-turbo-preview",
+			response_format: { type: "json_object" },
+			messages: messages,
+		});
+
+		const llm_output = response.choices[0].message.content;
+
+		const summary = JSON.parse(llm_output);
+		const result = summary.result;
+
+		return result;
+	} catch (error) {
+		console.error("Error summarizing player info:", error);
+	}
+}
+
 
 client.slashcommands = new Discord.Collection();
 let commands = [];
@@ -54,7 +93,7 @@ client.on('messageCreate', async message => {
 	console.log('message event');
 	// Check if the message is from the desired channel
 	if (message.channel.id === TWITTER_CHANNEL_ID) {
-		
+
 		console.log(`[${message.author.tag}] ${message.content}`);
 
 		// Regular expression patterns
@@ -87,32 +126,61 @@ client.on('messageCreate', async message => {
 		console.log("ID Slug:", idSlug);
 
 		var ingest_author = username
-		if(authorNameProcessed != '• TweetShift#0000'){
+		if (authorNameProcessed != '• TweetShift#0000') {
 			ingest_author = authorNameProcessed
 		}
-		// // Insert the message into the 'takes' table in Supabase
-		const { data, error } = await supabase.from('content').insert([
-			{ 
-				content_id: 'twitter-'+ username + '-' + idSlug,
-				publication_name: 'Twitter.com/' + username,
-				content_title: text,
-				published: new Date(),
-				parsed_link: url,
-				summary: text,
-				thumbnail_url: null,
-				content_type: 'tweet',
-				platform_id: idSlug,
-				author: ingest_author
-			 }
-		]);
 
-		if (error) {
-			console.error('Error inserting message into Supabase:', error.message);
-		} else {
-			console.log('Message inserted into Supabase successfully:', data);
+		// Call the function to map the tweet to a player
+		const result = await mapTweetToPlayer(text, supabase, openai);
+
+		if (result.length != 0) {
+			// For each object in the result array, insert the message into the 'takes' table in Supabase
+			for (const player of result) {
+				const { data: takes_data, error: takes_error } = await supabase.from('content_player_takes').insert([
+					{
+						content_id: 'twitter-' + username + '-' + idSlug,
+						publication_name: 'twitter.com/' + username,
+						content_title: text,
+						published: new Date(),
+						parsed_link: url,
+						summary: text,
+						thumbnail_url: null,
+						player_id: player.player_id,
+						player_name: player.full_name,
+						return_obj: player,
+						author: ingest_author
+					}
+				]);
+
+			}
+
+			// // Insert the message into the 'takes' table in Supabase
+			const { data, error } = await supabase.from('content').insert([
+				{
+					content_id: 'twitter-' + username + '-' + idSlug,
+					publication_name: 'twitter.com/' + username,
+					content_title: text,
+					published: new Date(),
+					parsed_link: url,
+					summary: text,
+					thumbnail_url: null,
+					content_type: 'tweet',
+					platform_id: idSlug,
+					author: ingest_author
+				}
+			]);
 		}
-	}
-});
+
+
+
+			if (error) {
+				console.error('Error inserting message into Supabase:', error.message);
+			} else {
+				console.log('Message inserted into Supabase successfully:', data);
+			}
+		}
+	});
+
 
 
 
