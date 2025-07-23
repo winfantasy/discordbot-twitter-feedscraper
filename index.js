@@ -153,42 +153,42 @@ client.on('messageCreate', async message => {
 					}
 				]);
 
-		// 	}
+		}
 
-		// 	// // Insert the message into the 'takes' table in Supabase
-		// 	const { data, error } = await supabase.from('content').insert([
-		// 		{
-		// 			content_id: 'twitter-' + username + '-' + idSlug,
-		// 			publication_name: 'twitter.com/' + username,
-		// 			content_title: text,
-		// 			published: new Date(),
-		// 			parsed_link: url,
-		// 			summary: text,
-		// 			thumbnail_url: null,
-		// 			content_type: 'tweet',
-		// 			platform_id: idSlug,
-		// 			author: ingest_author,
-		// 			is_parsed: true
-		// 		}
-		// 	]);
-		// }
+			// // Insert the message into the 'takes' table in Supabase
+			const { data, error } = await supabase.from('content').insert([
+				{
+					content_id: 'twitter-' + username + '-' + idSlug,
+					publication_name: 'twitter.com/' + username,
+					content_title: text,
+					published: new Date(),
+					parsed_link: url,
+					summary: text,
+					thumbnail_url: null,
+					content_type: 'tweet',
+					platform_id: idSlug,
+					author: ingest_author,
+					is_parsed: true
+				}
+			]);
+		}
 
 		
 		// // Insert the message into the 'takes' table in Supabase
-		const { data, error } = await supabase.from('content').insert([
-			{ 
-				content_id: 'twitter-'+ username + '-' + idSlug,
-				publication_name: 'Twitter.com/' + username,
-				content_title: text,
-				published: new Date(),
-				parsed_link: url,
-				summary: text,
-				thumbnail_url: null,
-				content_type: 'tweet',
-				platform_id: idSlug,
-				author: ingest_author
-			 }
-		]);
+		// const { data, error } = await supabase.from('content').insert([
+		// 	{ 
+		// 		content_id: 'twitter-'+ username + '-' + idSlug,
+		// 		publication_name: 'Twitter.com/' + username,
+		// 		content_title: text,
+		// 		published: new Date(),
+		// 		parsed_link: url,
+		// 		summary: text,
+		// 		thumbnail_url: null,
+		// 		content_type: 'tweet',
+		// 		platform_id: idSlug,
+		// 		author: ingest_author
+		// 	 }
+		// ]);
 
 
 		
