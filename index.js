@@ -33,7 +33,7 @@ const openai = new OpenAI({
 
 
 async function mapTweetToPlayer(tweetText, supabase, openai) {
-	const { data, error } = await supabase.from('players').select('player_id, full_name').eq('sport', 'baseball').eq('status', 'Active')
+	const { data, error } = await supabase.from('players').select('player_id, full_name').eq('sport', 'football').eq('status', 'Active')
     
 	try {
 		const messages = [
@@ -45,7 +45,7 @@ async function mapTweetToPlayer(tweetText, supabase, openai) {
 		];
 	
 		const response = await openai.chat.completions.create({
-		  model: "gpt-4-turbo-preview",
+		  model: "gpt-4.1-mini",
 		  response_format: { type: "json_object" },
 		  messages: messages,
 		});
@@ -132,26 +132,26 @@ client.on('messageCreate', async message => {
 
 		
 		// Call the function to map the tweet to a player
-		// const result = await mapTweetToPlayer(text, supabase, openai);
+		const result = await mapTweetToPlayer(text, supabase, openai);
 
-		// if (result.length != 0) {
-		// 	// For each object in the result array, insert the message into the 'takes' table in Supabase
-		// 	for (const player of result) {
-		// 		const { data: takes_data, error: takes_error } = await supabase.from('content_player_takes').insert([
-		// 			{
-		// 				content_id: 'twitter-' + username + '-' + idSlug,
-		// 				publication_name: 'twitter.com/' + username,
-		// 				content_title: text,
-		// 				published: new Date(),
-		// 				parsed_link: url,
-		// 				summary: text,
-		// 				thumbnail_url: null,
-		// 				player_id: player.player_id,
-		// 				player_name: player.full_name,
-		// 				return_obj: player,
-		// 				author: ingest_author
-		// 			}
-		// 		]);
+		if (result.length != 0) {
+			// For each object in the result array, insert the message into the 'takes' table in Supabase
+			for (const player of result) {
+				const { data: takes_data, error: takes_error } = await supabase.from('content_player_takes').insert([
+					{
+						content_id: 'twitter-' + username + '-' + idSlug,
+						publication_name: 'twitter.com/' + username,
+						content_title: text,
+						published: new Date(),
+						parsed_link: url,
+						summary: text,
+						thumbnail_url: null,
+						player_id: player.player_id,
+						player_name: player.full_name,
+						return_obj: player,
+						author: ingest_author
+					}
+				]);
 
 		// 	}
 
