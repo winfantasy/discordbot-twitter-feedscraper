@@ -171,6 +171,12 @@ client.on('messageCreate', async message => {
 					is_parsed: true
 				}
 			]);
+
+			if (error) {
+				console.error('Error inserting message into Supabase:', error.message);
+			} else {
+				console.log('Message inserted into Supabase successfully:', data);
+			}
 		}
 
 		
@@ -192,11 +198,11 @@ client.on('messageCreate', async message => {
 
 
 		
-		if (error) {
-			console.error('Error inserting message into Supabase:', error.message);
-		} else {
-			console.log('Message inserted into Supabase successfully:', data);
-		}
+		// if (error) {
+		// 	console.error('Error inserting message into Supabase:', error.message);
+		// } else {
+		// 	console.log('Message inserted into Supabase successfully:', data);
+		// }
 	}
 });
 
