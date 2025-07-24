@@ -39,7 +39,10 @@ async function mapTweetToPlayer(tweetText, supabase, openai) {
 		const messages = [
 		  {
 			role: "system",
-			content: `You will be provided with a tweet delimited by triple quotes, and a json array. Each object in the json array corresponds to an athlete. Your task is to return the players that are referenced in the tweet. Include a probability that this player is the correct one from 0,1. Anything over 90% should be fairly certain. If you think none of the players fit , then return an empty array. Use the following format for your output: {result: [{full_name, player_id, probability}, {full_name, player_id, probability}]}  Thank you!`,
+			content: `You will be provided with a tweet delimited by triple quotes, and a json array. Each object in the json array corresponds to an athlete. 
+			   Your task is to return the players that are referenced in the tweet. Include a probability that this player is the correct one from 0,1 and a useful score that is if this information is useful from 0,1.
+			   Anything over 90% should be fairly certain. If you think none of the players fit OR if the tweet is promotional and doesn't provide any worthwhile information, 
+      then return an empty array. Use the following format for your output: {result: [{full_name, player_id, probability, useful}, {full_name, player_id, probability, useful}]}  Thank you!`,
 		  },
 		  { role: "user", content: `"""${tweetText} """ ${JSON.stringify(data)}` },
 		];
