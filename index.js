@@ -94,120 +94,100 @@ for (const file of eventFiles) {
 
 client.on('messageCreate', async message => {
 	console.log('message event');
-	// Check if the message is from the desired channel
-	if (message.channel.id === TWITTER_CHANNEL_ID) {
-		
-		console.log(`[${message.author.tag}] ${message.content}`);
 
-		// Regular expression patterns
-		const urlRegex = /https?:\/\/twitter\.com\/[^\s]*/g;
-		const twitterUsernameRegex = /twitter\.com\/([^\/]+)/;
-		// Regular expression pattern to extract the ID slug from the Twitter URL
-		const idSlugRegex = /\/status\/(\d+)/;
+	if (message.channel.id !== TWITTER_CHANNEL_ID) return;
 
-		const twitterAuthorName = message.author.tag;
-		//stringSplit author on ' • '
-		const authorNameProcessed = twitterAuthorName.split(' • ')[0];
+	console.log(`[${message.author.tag}] ${message.content}`);
 
-		// Extract text
-		const text = message.content.split('https://twitter.com/')[0].trim();
+	const urlRegex = /https?:\/\/twitter\.com\/[^\s]*/g;
+	const twitterUsernameRegex = /twitter\.com\/([^\/]+)/;
+	const idSlugRegex = /\/status\/(\d+)/;
 
-		// Extract URL
-		const urlMatch = message.content.match(urlRegex);
-		const url = urlMatch ? urlMatch[0] : null;
+	const twitterAuthorName = message.author.tag;
+	const authorNameProcessed = twitterAuthorName.split(' • ')[0];
 
-		// Extract username from URL
+	const text = message.content.split('https://twitter.com/')[0].trim();
+
+	const urlMatch = message.content.match(urlRegex);
+	const url = urlMatch ? urlMatch[0] : null;
+
+	let username = null;
+	let idSlug = null;
+
+	if (url) {
 		const usernameMatch = url.match(twitterUsernameRegex);
-		const username = usernameMatch ? usernameMatch[1] : null;
+		username = usernameMatch ? usernameMatch[1] : null;
 
-		// Extract ID slug from URL
 		const idSlugMatch = url.match(idSlugRegex);
-		const idSlug = idSlugMatch ? idSlugMatch[1] : null;
-		console.log("Text:", text);
-		console.log("URL:", url);
-		console.log("Twitter Username:", username);
-		console.log("ID Slug:", idSlug);
+		idSlug = idSlugMatch ? idSlugMatch[1] : null;
+	} else {
+		console.warn('No valid Twitter URL found in message.');
+		return;
+	}
 
-		var ingest_author = username
-		if(authorNameProcessed != '• TweetShift#0000'){
-			ingest_author = authorNameProcessed
-		}
+	if (!username || !idSlug) {
+		console.warn('Unable to extract Twitter username or ID slug.');
+		return;
+	}
 
-		
-		// Call the function to map the tweet to a player
+	console.log("Text:", text);
+	console.log("URL:", url);
+	console.log("Twitter Username:", username);
+	console.log("ID Slug:", idSlug);
+
+	let ingest_author = username;
+	if (authorNameProcessed !== '• TweetShift#0000') {
+		ingest_author = authorNameProcessed;
+	}
+
+	try {
 		const result = await mapTweetToPlayer(text, supabase, openai);
 
-		if (result.length != 0) {
-			// For each object in the result array, insert the message into the 'takes' table in Supabase
-			for (const player of result) {
-				const { data: takes_data, error: takes_error } = await supabase.from('content_player_takes').insert([
-					{
-						content_id: 'twitter-' + username + '-' + idSlug,
-						publication_name: 'twitter.com/' + username,
-						content_title: text,
-						published: new Date(),
-						parsed_link: url,
-						summary: text,
-						thumbnail_url: null,
-						player_id: player.player_id,
-						player_name: player.full_name,
-						return_obj: player,
-						author: ingest_author
-					}
-				]);
-
+		if (!Array.isArray(result) || result.length === 0) {
+			console.log('No players mapped from tweet.');
+			return;
 		}
 
-			// // Insert the message into the 'takes' table in Supabase
-			const { data, error } = await supabase.from('content').insert([
-				{
-					content_id: 'twitter-' + username + '-' + idSlug,
-					publication_name: 'twitter.com/' + username,
-					content_title: text,
-					published: new Date(),
-					parsed_link: url,
-					summary: text,
-					thumbnail_url: null,
-					content_type: 'tweet',
-					platform_id: idSlug,
-					author: ingest_author,
-					is_parsed: true
-				}
-			]);
-
-			if (error) {
-				console.error('Error inserting message into Supabase:', error.message);
-			} else {
-				console.log('Message inserted into Supabase successfully:', data);
-			}
+		for (const player of result) {
+			await supabase.from('content_player_takes').insert([{
+				content_id: `twitter-${username}-${idSlug}`,
+				publication_name: `twitter.com/${username}`,
+				content_title: text,
+				published: new Date(),
+				parsed_link: url,
+				summary: text,
+				thumbnail_url: null,
+				player_id: player.player_id,
+				player_name: player.full_name,
+				return_obj: player,
+				author: ingest_author
+			}]);
 		}
 
-		
-		// // Insert the message into the 'takes' table in Supabase
-		// const { data, error } = await supabase.from('content').insert([
-		// 	{ 
-		// 		content_id: 'twitter-'+ username + '-' + idSlug,
-		// 		publication_name: 'Twitter.com/' + username,
-		// 		content_title: text,
-		// 		published: new Date(),
-		// 		parsed_link: url,
-		// 		summary: text,
-		// 		thumbnail_url: null,
-		// 		content_type: 'tweet',
-		// 		platform_id: idSlug,
-		// 		author: ingest_author
-		// 	 }
-		// ]);
+		const { data, error } = await supabase.from('content').insert([{
+			content_id: `twitter-${username}-${idSlug}`,
+			publication_name: `twitter.com/${username}`,
+			content_title: text,
+			published: new Date(),
+			parsed_link: url,
+			summary: text,
+			thumbnail_url: null,
+			content_type: 'tweet',
+			platform_id: idSlug,
+			author: ingest_author,
+			is_parsed: true
+		}]);
 
-
-		
-		// if (error) {
-		// 	console.error('Error inserting message into Supabase:', error.message);
-		// } else {
-		// 	console.log('Message inserted into Supabase successfully:', data);
-		// }
+		if (error) {
+			console.error('Error inserting message into Supabase:', error.message);
+		} else {
+			console.log('Message inserted into Supabase successfully:', data);
+		}
+	} catch (err) {
+		console.error('Unexpected failure during tweet processing:', err);
 	}
 });
+
 
 
 
